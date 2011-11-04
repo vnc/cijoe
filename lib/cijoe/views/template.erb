@@ -39,9 +39,8 @@
                 in <span class="duration"><%= joe.last_build.duration %></span> seconds.
               <% end %>
             </li>
-            <% if joe.last_build.failed? %>
-              <li><pre class="terminal"><code><%=ansi_color_codes h(joe.last_build.output) %></code></pre></li>
-            <% end %>
+            
+            <li><pre class="terminal"><code><%=ansi_color_codes h(joe.last_build.output) %></code></pre></li>
           <% end %>
         </ul>
       </div>
