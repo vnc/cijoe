@@ -29,6 +29,12 @@ Choice.options do
   separator ''
   separator 'Common options: '
 
+  option :svn do
+    short '-s'
+    long '--svn'
+    desc "Use git-svn rather than plain-vanilla git"
+  end
+
   option :help do
     long '--help'
     desc 'Show this message'
@@ -47,4 +53,7 @@ end
 
 options = Choice.choices
 
-CIJoe::Server.start(options[:host], options[:port], File.expand_path(Choice.rest[0].to_s))
+CIJoe::Server.start(options[:host],
+                    options[:port],
+                    File.expand_path(Choice.rest[0].to_s), # project_path
+                    options.include?('svn'))

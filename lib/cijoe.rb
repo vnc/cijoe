@@ -24,11 +24,11 @@ require 'cijoe/queue'
 class CIJoe
   attr_reader :user, :project, :url, :current_build, :last_build, :campfire
 
-  def initialize(project_path)
+  def initialize(project_path, use_svn)
     @project_path = File.expand_path(project_path)
+    @use_svn = use_svn
 
-    @user, @project = git_user_and_project
-    @url = "http://github.com/#{@user}/#{@project}"
+    @user, @project, @url = git_user_project_url
 
     @campfire = CIJoe::Campfire.new(project_path)
 
@@ -143,16 +143,43 @@ class CIJoe
   end
 
   def git_sha
-    `cd #{@project_path} && git rev-parse origin/#{git_branch}`.chomp
+    if @use_svn
+      # TODO: Do we really want to be using the SHA of the local branch?
+      # It looks like the git version assumes a naming convention
+      `cd #{@project_path} && git rev-parse #{git_branch}`.chomp
+    else
+      `cd #{@project_path} && git rev-parse origin/#{git_branch}`.chomp
+    end
   end
 
   def git_update
-    `cd #{@project_path} && git fetch origin && git reset --hard origin/#{git_branch}`
+    if @use_svn
+      `cd #{@project_path} && git svn fetch && git svn rebase`
+    else
+      `cd #{@project_path} && git fetch origin && git reset --hard origin/#{git_branch}`
+    end
     run_hook "after-reset"
   end
 
-  def git_user_and_project
-    Config.remote(@project_path).origin.url.to_s.chomp('.git').split(':')[-1].split('/')[-2, 2]
+  def git_user_project_url
+    if @use_svn
+      # This works for our git-svn projects, but your mileage may vary, depending
+      # on your SVN structure. Our .git/config files look like:
+      #  [svn-remote "svn"]
+      #    url = https://blahblahblah.jira.com/svn
+      #    fetch = jiraproject/project/trunk:refs/remotes/trunk
+      #    branches = jiraproject/project/branches/*:refs/remotes/*
+      #    tags = jiraproject/project/tags/*:refs/remotes/tags/*
+      matches = /^(\w+)\/(\w+)\/.*$/.match(Config.svn_remote(@project_path).svn.fetch.to_s)
+      user, project = matches[1], matches[2]
+      return user, project, "#{Config.svn_remote(@project_path).svn.url.to_s}/#{user}/#{project}"
+    else
+      # Assumes that github is the remote
+      # If origin url is: git@github.com:vnc/keg.io.git
+      # then user => vnc  project => keg.io
+      user, project = Config.remote(@project_path).origin.url.to_s.chomp('.git').split(':')[-1].split('/')[-2, 2]
+      return user, project, "http://github.com/#{user}/#{project}"
+    end
   end
 
   def git_branch
@@ -165,22 +192,22 @@ class CIJoe
   def run_hook(hook)
     if File.exists?(file=path_in_project(".git/hooks/#{hook}")) && File.executable?(file)
       data =
-        if @last_build && @last_build.commit
-          {
-            "MESSAGE" => @last_build.commit.message,
-            "AUTHOR" => @last_build.commit.author,
-            "SHA" => @last_build.commit.sha,
-            "OUTPUT" => @last_build.env_output
-          }
-        else
-          {}
-        end
+      if @last_build && @last_build.commit
+        {
+          "MESSAGE" => @last_build.commit.message,
+          "AUTHOR" => @last_build.commit.author,
+          "SHA" => @last_build.commit.sha,
+          "OUTPUT" => @last_build.env_output
+        }
+      else
+        {}
+      end
 
       orig_ENV = ENV.to_hash
       ENV.clear
       data.each{ |k, v| ENV[k] = v }
       output = `cd #{@project_path} && sh #{file}`
-      
+
       ENV.clear
       orig_ENV.to_hash.each{ |k, v| ENV[k] = v}
       output

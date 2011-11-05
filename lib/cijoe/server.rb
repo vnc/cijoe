@@ -12,7 +12,7 @@ class CIJoe
     set :public, "#{dir}/public"
     set :static, true
     set :lock, true
-
+    
     before { joe.restore }
 
     get '/ping' do
@@ -79,11 +79,12 @@ class CIJoe
     def initialize(*args)
       super
       check_project
-      @joe = CIJoe.new(options.project_path)
+      @joe = CIJoe.new(options.project_path, options.use_svn)
     end
 
-    def self.start(host, port, project_path)
+    def self.start(host, port, project_path, use_svn)
       set :project_path, project_path
+      set :use_svn, use_svn
       CIJoe::Server.run! :host => host, :port => port
     end
 

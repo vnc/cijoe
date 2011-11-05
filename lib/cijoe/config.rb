@@ -4,6 +4,12 @@ class CIJoe
       new(command, *args)
     end
 
+    # For 'svn-remote', we can't just use the clever method_missing approach 
+    # that's used for other commands, since hyphens are illegal in Ruby identifiers
+    def self.svn_remote(*args)
+      new('svn-remote', *args)
+    end
+    
     def initialize(command, project_path = nil, parent = nil)
       @command  = command
       @parent   = parent

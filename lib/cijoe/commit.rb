@@ -1,6 +1,7 @@
 class CIJoe
   class Commit < Struct.new(:sha, :user, :project, :project_path)
     def url
+      # TODO: Make this non-github specific
       "http://github.com/#{user}/#{project}/commit/#{sha}"
     end
 
