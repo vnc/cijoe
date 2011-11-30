@@ -154,7 +154,7 @@ class CIJoe
 
   def git_update
     if @use_svn
-      `cd #{@project_path} && git svn fetch && git svn rebase`
+      `cd #{@project_path} && git reset --hard HEAD && git svn fetch && git svn rebase`
     else
       `cd #{@project_path} && git fetch origin && git reset --hard origin/#{git_branch}`
     end
