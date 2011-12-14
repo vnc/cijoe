@@ -8,7 +8,7 @@ require 'rack'
 require 'thin'
 
 Choice.options do
-  banner "Usage: #{File.basename(__FILE__)} [-hpv] path_to_git_repo"
+  banner "Usage: #{File.basename(__FILE__)} [-hpvs] path_to_git_repo"
   header ''
   header 'Server options:'
 
